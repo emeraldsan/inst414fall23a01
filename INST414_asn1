@@ -1,0 +1,53 @@
+import tweepy
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Set up your Twitter API credentials
+consumer_key = 'your_consumer_key'
+consumer_secret = 'your_consumer_secret'
+access_token = 'your_access_token'
+access_token_secret = 'your_access_token_secret'
+
+# Authenticate with Twitter API
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth, wait_on_rate_limit=True)
+
+# Define the brand-related keywords and hashtags you want to track
+keywords = ['brand', 'product', 'marketing']
+hashtags = ['#branding', '#marketingstrategy', '#productlaunch']
+
+# Initialize data containers
+tweets_data = {
+    'Timestamp': [],
+    'Likes': [],
+    'Retweets': [],
+    'Replies': []
+}
+
+# Collect Twitter data
+for keyword in keywords:
+    for tweet in tweepy.Cursor(api.search, q=keyword, tweet_mode='extended', lang='en').items(1000):
+        tweets_data['Timestamp'].append(tweet.created_at)
+        tweets_data['Likes'].append(tweet.favorite_count)
+        tweets_data['Retweets'].append(tweet.retweet_count)
+        tweets_data['Replies'].append(tweet.reply_count)
+
+# Create a DataFrame from the collected data
+df = pd.DataFrame(tweets_data)
+
+# EDA - Day of the week analysis
+df['DayOfWeek'] = df['Timestamp'].dt.day_name()
+day_of_week_stats = df.groupby('DayOfWeek')[['Likes', 'Retweets', 'Replies']].mean()
+
+# EDA - Hourly analysis
+df['Hour'] = df['Timestamp'].dt.hour
+hourly_stats = df.groupby('Hour')[['Likes', 'Retweets', 'Replies']].mean()
+
+# Plotting the results
+fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 8))
+day_of_week_stats.plot(kind='bar', ax=axes[0], title='Average Engagement by Day of the Week')
+hourly_stats.plot(kind='line', ax=axes[1], title='Average Engagement by Hour of the Day')
+
+plt.tight_layout()
+plt.show()
